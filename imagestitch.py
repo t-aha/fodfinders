@@ -20,102 +20,78 @@ print('Python version:', sys.version)
 print('OpenCV version:', cv2.__version__)
 print('NumPy version: ', np.__version__)
 
-"""Load the two images."""
+# """Load the two images."""
 
-from google.colab import drive
-drive.mount('/content/drive')
+# from google.colab import drive
+# drive.mount('/content/drive')
 
-import os
-os.chdir('/content/drive/MyDrive/Colab Notebooks/fod code')
+# import os
+# os.chdir('/content/drive/MyDrive/Colab Notebooks/fod code')
 
-#img1 = cv2.imread('IMG_3921.jpg')
+# #img1 = cv2.imread('IMG_3921.jpg')
 
-#img_1 = cv2.imread('IMG_3921.jpg')
-img_1 = cv2.imread('IMG_3845.JPG')
-img_1 = cv2.cvtColor(img_1, cv2.COLOR_BGR2RGB)
+# #img_1 = cv2.imread('IMG_3921.jpg')
+# img_1 = cv2.imread('IMG_3845.JPG')
+# img_1 = cv2.cvtColor(img_1, cv2.COLOR_BGR2RGB)
 
-plt.imshow(img_1)
-plt.show()
-#img_2 = cv2.imread('IMG_3922.jpg')
-img_2 = cv2.imread('IMG_3844.JPG')
-img_2 = cv2.cvtColor(img_2, cv2.COLOR_BGR2RGB)
+# plt.imshow(img_1)
+# plt.show()
+# #img_2 = cv2.imread('IMG_3922.jpg')
+# img_2 = cv2.imread('IMG_3844.JPG')
+# img_2 = cv2.cvtColor(img_2, cv2.COLOR_BGR2RGB)
 
-plt.imshow(img_2)
-plt.show()
+# plt.imshow(img_2)
+# plt.show()
 
-"""Convert images to gray-scale."""
 
-img1 = cv2.cvtColor(img_1,cv2.COLOR_RGB2GRAY)
-plt.imshow(img1)
-plt.show()
-img2 = cv2.cvtColor(img_2,cv2.COLOR_RGB2GRAY)
-plt.imshow(img2)
-plt.show()
+def imagestitch(img_1, img_2):
+    """Convert images to gray-scale."""
 
-"""Creating SIFT keypoints and desciptors."""
+    img1 = cv2.cvtColor(img_1,cv2.COLOR_RGB2GRAY)
+    # plt.imshow(img1)
+    # plt.show()
+    img2 = cv2.cvtColor(img_2,cv2.COLOR_RGB2GRAY)
+    # plt.imshow(img2)
+    # plt.show()
 
-sift = cv2.xfeatures2d.SIFT_create()
-kp1, des1 = sift.detectAndCompute(img1,None)
-kp2, des2 = sift.detectAndCompute(img2,None)
+    """Creating SIFT keypoints and desciptors."""
 
-bf = cv2.BFMatcher()
+    sift = cv2.xfeatures2d.SIFT_create()
+    kp1, des1 = sift.detectAndCompute(img1,None)
+    kp2, des2 = sift.detectAndCompute(img2,None)
 
-matches = bf.knnMatch(des1,des2, k=2)
+    bf = cv2.BFMatcher()
 
-good = []
-for m in matches:
-    if (m[0].distance < 0.5*m[1].distance):
-        good.append(m)
-matches = np.asarray(good)
+    matches = bf.knnMatch(des1,des2, k=2)
 
-# Allign the images
+    good = []
+    for m in matches:
+        if (m[0].distance < 0.5*m[1].distance):
+            good.append(m)
+    matches = np.asarray(good)
 
-if (len(matches[:,0]) >= 4):
-    src = np.float32([ kp1[m.queryIdx].pt for m in matches[:,0] ]).reshape(-1,1,2)
-    dst = np.float32([ kp2[m.trainIdx].pt for m in matches[:,0] ]).reshape(-1,1,2)
-    H, masked = cv2.findHomography(src, dst, cv2.RANSAC, 5.0)
-else:
-    raise AssertionError('Can’t find enough keypoints.')
+    # Allign the images
 
-"""Stitch the Images."""
+    if (len(matches[:,0]) >= 4):
+        src = np.float32([ kp1[m.queryIdx].pt for m in matches[:,0] ]).reshape(-1,1,2)
+        dst = np.float32([ kp2[m.trainIdx].pt for m in matches[:,0] ]).reshape(-1,1,2)
+        H, masked = cv2.findHomography(src, dst, cv2.RANSAC, 5.0)
+    else:
+        raise AssertionError('Can’t find enough keypoints.')
 
-dst = cv2.warpPerspective(img_1,H,((img_1.shape[1] + img_2.shape[1]), img_2.shape[0])) #wraped image
-dst[0:img_2.shape[0], 0:img_2.shape[1]] = img_2 #stitched image
-#cv2.imwrite('output.jpg',dst)
-cv2.imwrite('output.jpg', cv2.cvtColor(dst, cv2.COLOR_BGR2RGB))
-plt.imshow(dst)
-plt.show()
+    """Stitch the Images."""
 
-#img1 = cv2.imread('IMG_3921.jpg')
+    dst = cv2.warpPerspective(img_1,H,((img_1.shape[1] + img_2.shape[1]), img_2.shape[0])) #wraped image
+    dst[0:img_2.shape[0], 0:img_2.shape[1]] = img_2 #stitched image
+    #cv2.imwrite('output.jpg',dst)
+    #cv2.imwrite('output.jpg', cv2.cvtColor(dst, cv2.COLOR_BGR2RGB))
+    dst = cv2.cvtColor(dst, cv2.COLOR_BGR2RGB)
+    plt.imshow(dst)
+    plt.show()
 
-img_1 = cv2.imread('newimg0.png')
-img_1 = cv2.cvtColor(img_1, cv2.COLOR_RGB2GRAY)
-
-plt.imshow(img_1)
-plt.show()
-img_2 = cv2.imread('newimg1.png')
-img_2 = cv2.cvtColor(img_2, cv2.COLOR_RGB2GRAY)
-
-plt.imshow(img_2)
-plt.show()
-
-plt.imshow(cv2.subtract(img_1,img_2))
-
-"""Histogram Equalization"""
-
-img = cv2.imread('IMG_3846.JPG')
-plt.imshow(img)
-plt.show()
-
-img_yuv = cv2.cvtColor(img, cv2.COLOR_BGR2YUV)
-
-# equalize the histogram of the Y channel
-img_yuv[:,:,0] = cv2.equalizeHist(img_yuv[:,:,0])
-
-# convert the YUV image back to RGB format
-img_output = cv2.cvtColor(img_yuv, cv2.COLOR_YUV2BGR)
+    return dst
 
 #cv2.imshow('Color input image', img)
 #cv2.imshow('Histogram equalized', img_output)
-plt.imshow(img_output)
-plt.show()
+# plt.imshow(img_output)
+# plt.show()
